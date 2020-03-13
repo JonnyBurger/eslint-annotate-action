@@ -4325,42 +4325,6 @@ function run() {
         const esLintAnalysis = analyze_eslint_js_1.default(reportJSON);
         const conclusion = esLintAnalysis.success ? 'success' : 'failure';
         const currentTimestamp = new Date().toISOString();
-        // If this is NOT a pull request
-        if (!PULL_REQUEST) {
-            /**
-             * Create and complete a GitHub check with the
-             * markdown contents of the report analysis.
-             */
-            try {
-                yield OCTOKIT.checks.create({
-                    owner: OWNER,
-                    repo: REPO,
-                    started_at: currentTimestamp,
-                    head_sha: SHA,
-                    completed_at: currentTimestamp,
-                    status: 'completed',
-                    name: CHECK_NAME,
-                    conclusion: conclusion,
-                    output: {
-                        title: CHECK_NAME,
-                        summary: esLintAnalysis.summary,
-                        text: esLintAnalysis.markdown,
-                    },
-                });
-                /**
-                 * If there were any ESLint errors
-                 * fail the GitHub Action and exit
-                 */
-                if (esLintAnalysis.errorCount > 0) {
-                    core.setFailed('ESLint errors detected.');
-                    process.exit(1);
-                }
-            }
-            catch (err) {
-                core.setFailed(err.message ? err.message : 'Error analyzing the provided ESLint report.');
-            }
-            return;
-        }
         /**
          * Otherwise, if this IS a pull request
          * create a GitHub check and add any
