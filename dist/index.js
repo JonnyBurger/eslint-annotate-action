@@ -4314,7 +4314,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
-const get_pr_files_changed_1 = __importDefault(__webpack_require__(981));
 const eslint_json_report_to_js_1 = __importDefault(__webpack_require__(328));
 const analyze_eslint_js_1 = __importDefault(__webpack_require__(332));
 const constants_1 = __importDefault(__webpack_require__(32));
@@ -4325,18 +4324,6 @@ function run() {
         const esLintAnalysis = analyze_eslint_js_1.default(reportJSON);
         const conclusion = esLintAnalysis.success ? 'success' : 'failure';
         const currentTimestamp = new Date().toISOString();
-        /**
-         * Otherwise, if this IS a pull request
-         * create a GitHub check and add any
-         * annotations in batches to the check,
-         * then close the check.
-         */
-        core.debug('Fetching files changed in the pull request.');
-        const changedFiles = yield get_pr_files_changed_1.default();
-        if (changedFiles.length <= 0) {
-            core.setFailed('No files changed in the pull request.');
-            process.exit(1);
-        }
         // Wrap API calls in try/catch in case there are issues
         try {
             /**
@@ -11519,92 +11506,6 @@ function onceStrict (fn) {
   return f
 }
 
-
-/***/ }),
-
-/***/ 981:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const core = __importStar(__webpack_require__(470));
-const constants_1 = __importDefault(__webpack_require__(32));
-const { OWNER, PR_NUMBER, REPO, OCTOKIT } = constants_1.default;
-function fetchFilesBatch(client, prNumber, startCursor) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const { repository } = yield client.graphql(`
-    query ChangedFilesbatch($owner: String!, $repo: String!, $prNumber: Int!, $startCursor: String) {
-      repository(owner: $owner, name: $repo) {
-        pullRequest(number: $prNumber) {
-          files(first: 100, after: $startCursor) {
-            pageInfo {
-              hasNextPage
-              endCursor
-            }
-            totalCount
-            edges {
-              cursor
-              node {
-                path
-              }
-            }
-          }
-        }
-      }
-    }
-  `, { owner: OWNER, repo: REPO, prNumber, startCursor });
-        const pr = repository.pullRequest;
-        if (!pr || !pr.files) {
-            return { files: [] };
-        }
-        return Object.assign(Object.assign({}, pr.files.pageInfo), { files: pr.files.edges.map(e => e.node.path) });
-    });
-}
-function getPullRequestFilesChanged() {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.debug('Fetching files changed in the pull request.');
-        let files = [];
-        let hasNextPage = true;
-        let startCursor = undefined;
-        while (hasNextPage) {
-            try {
-                const result = yield fetchFilesBatch(OCTOKIT, PR_NUMBER, startCursor);
-                files = files.concat(result.files);
-                hasNextPage = result.hasNextPage;
-                startCursor = result.endCursor;
-            }
-            catch (err) {
-                // Catch any errors from API calls and fail the action
-                core.error(err);
-                core.setFailed('Error occurred getting files changes in the pull request.');
-                process.exit(1);
-            }
-        }
-        return files;
-    });
-}
-exports.default = getPullRequestFilesChanged;
-//# sourceMappingURL=get-pr-files-changed.js.map
 
 /***/ })
 
