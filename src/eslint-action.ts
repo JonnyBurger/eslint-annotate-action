@@ -7,7 +7,6 @@
 
 import * as core from '@actions/core';
 
-import getPullRequestFilesChanged from './get-pr-files-changed';
 import ESLintJsonReportToJS from './eslint-json-report-to-js';
 import analyzeESLintReport from './analyze-eslint-js';
 import CONSTANTS from './constants';
@@ -19,20 +18,6 @@ async function run(): Promise<void> {
   const esLintAnalysis = analyzeESLintReport(reportJSON);
   const conclusion = esLintAnalysis.success ? 'success' : 'failure';
   const currentTimestamp = new Date().toISOString();
-
-  /**
-   * Otherwise, if this IS a pull request
-   * create a GitHub check and add any
-   * annotations in batches to the check,
-   * then close the check.
-   */
-  core.debug('Fetching files changed in the pull request.');
-  const changedFiles = await getPullRequestFilesChanged();
-
-  if (changedFiles.length <= 0) {
-    core.setFailed('No files changed in the pull request.');
-    process.exit(1);
-  }
 
   // Wrap API calls in try/catch in case there are issues
   try {
